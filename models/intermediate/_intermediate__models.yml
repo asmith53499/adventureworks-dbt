@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: int_sales_order_lines__costed
+    description: Order lines with the product's standard cost as of the order date.
+    columns:
+      - name: sales_order_detail_id
+        data_tests: [unique, not_null]
+      - name: unit_cost
+        data_tests: [not_null]
+      - name: is_cost_estimated
+        description: >
+          True when no cost history record covers the order date and unit_cost
+          falls back to the product's current standard cost.
+
+  - name: int_addresses__geography
+    description: Addresses joined to state, country and sales territory.
+    columns:
+      - name: address_id
+        data_tests: [unique, not_null]

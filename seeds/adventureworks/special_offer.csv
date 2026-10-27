@@ -1,0 +1,17 @@
+special_offer_id,description,discount_pct,type,category,start_date,end_date,min_qty,max_qty,modified_date
+1,No Discount,.0000,No Discount,No Discount,2022-04-30 00:00:00.000,2025-11-29 00:00:00.000,0,,2022-03-31 00:00:00.000
+2,Volume Discount 11 to 14,.0200,Volume Discount,Reseller,2022-05-30 00:00:00.000,2025-05-29 00:00:00.000,11,14,2022-04-30 00:00:00.000
+3,Volume Discount 15 to 24,.0500,Volume Discount,Reseller,2022-05-30 00:00:00.000,2025-05-29 00:00:00.000,15,24,2022-04-30 00:00:00.000
+4,Volume Discount 25 to 40,.1000,Volume Discount,Reseller,2022-05-30 00:00:00.000,2025-05-29 00:00:00.000,25,40,2022-04-30 00:00:00.000
+5,Volume Discount 41 to 60,.1500,Volume Discount,Reseller,2022-05-30 00:00:00.000,2025-05-29 00:00:00.000,41,60,2022-04-30 00:00:00.000
+6,Volume Discount over 60,.2000,Volume Discount,Reseller,2022-05-30 00:00:00.000,2025-05-29 00:00:00.000,61,,2022-04-30 00:00:00.000
+7,Mountain-100 Clearance Sale,.3500,Discontinued Product,Reseller,2023-04-13 00:00:00.000,2023-05-29 00:00:00.000,0,,2023-03-14 00:00:00.000
+8,Sport Helmet Discount-2002,.1000,Seasonal Discount,Reseller,2023-05-30 00:00:00.000,2023-06-29 00:00:00.000,0,,2023-04-30 00:00:00.000
+9,Road-650 Overstock,.3000,Excess Inventory,Reseller,2023-05-30 00:00:00.000,2023-07-30 00:00:00.000,0,,2023-04-30 00:00:00.000
+10,Mountain Tire Sale,.5000,Excess Inventory,Customer,2024-05-13 00:00:00.000,2024-07-28 00:00:00.000,0,,2024-04-13 00:00:00.000
+11,Sport Helmet Discount-2003,.1500,Seasonal Discount,Reseller,2024-05-29 00:00:00.000,2024-06-28 00:00:00.000,0,,2024-04-29 00:00:00.000
+12,LL Road Frame Sale,.3500,Excess Inventory,Reseller,2024-05-29 00:00:00.000,2024-07-13 00:00:00.000,0,,2024-04-29 00:00:00.000
+13,Touring-3000 Promotion,.1500,New Product,Reseller,2024-05-29 00:00:00.000,2024-08-28 00:00:00.000,0,,2024-04-29 00:00:00.000
+14,Touring-1000 Promotion,.2000,New Product,Reseller,2024-05-29 00:00:00.000,2024-08-28 00:00:00.000,0,,2024-04-29 00:00:00.000
+15,Half-Price Pedal Sale,.5000,Seasonal Discount,Customer,2024-07-13 00:00:00.000,2024-08-13 00:00:00.000,0,,2024-06-13 00:00:00.000
+16,Mountain-500 Silver Clearance Sale,.4000,Discontinued Product,Reseller,2025-03-30 00:00:00.000,2025-05-29 00:00:00.000,0,,2025-02-28 00:00:00.000

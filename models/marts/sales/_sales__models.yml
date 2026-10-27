@@ -1,0 +1,233 @@
+version: 2
+
+models:
+  # ---------------------------------------------------------------- dimensions
+
+  - name: dim_dates
+    description: >
+      Calendar from {{ var('calendar_start_date') }} to {{ var('calendar_end_date') }}.
+      Fiscal years run July - June and are named for the year they end in.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+      - name: day_of_week
+        description: ISO day of week, 1 = Monday ... 7 = Sunday.
+      - name: fiscal_year
+        description: FY2025 = 1 Jul 2024 - 30 Jun 2025.
+      - name: fiscal_quarter
+        description: Fiscal quarter; Q1 = Jul - Sep.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+
+  - name: dim_customers
+    description: One row per customer, with lifetime order stats.
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+      - name: customer_type
+        description: "'Individual' (online consumer) or 'Store' (reseller)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Individual', 'Store']
+      - name: customer_name
+        description: Store name for resellers, person's name for individuals.
+        data_tests: [not_null]
+      - name: contact_name
+        description: For stores, the purchasing contact (when known).
+      - name: lifetime_sales_amount
+        description: Sum of order subtotals (USD, excludes tax and freight).
+
+  - name: dim_products
+    description: Products with category hierarchy and model.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+      - name: product_category_name
+        description: Bikes, Components, Clothing, Accessories - or 'Component' for manufacturing parts.
+        data_tests: [not_null]
+      - name: list_margin
+        description: list_price - current standard_cost.
+
+  - name: dim_sales_territories
+    description: Sales territories with country.
+    columns:
+      - name: territory_id
+        data_tests: [unique, not_null]
+
+  - name: dim_salespeople
+    description: Salespeople with their current territory and compensation terms.
+    columns:
+      - name: sales_person_id
+        data_tests: [unique, not_null]
+      - name: sales_person_name
+        data_tests: [not_null]
+
+  - name: dim_promotions
+    description: Special offers that can apply to an order line.
+    columns:
+      - name: special_offer_id
+        data_tests: [unique, not_null]
+      - name: discount_pct
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: dim_addresses
+    description: Addresses with state, country and sales territory.
+    columns:
+      - name: address_id
+        data_tests: [unique, not_null]
+
+  # --------------------------------------------------------------------- facts
+
+  - name: fct_sales_order_lines
+    description: >
+      One row per sales order line. Margin uses the product's standard cost as of
+      the order date. All amounts in USD.
+    columns:
+      - name: sales_order_detail_id
+        data_tests: [unique, not_null]
+      - name: order_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_dates')
+                field: date_day
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: special_offer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_promotions')
+                field: special_offer_id
+      - name: sales_person_id
+        description: Null for online orders.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_salespeople')
+                field: sales_person_id
+      - name: territory_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_sales_territories')
+                field: territory_id
+      - name: ship_to_address_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_addresses')
+                field: address_id
+      - name: order_quantity
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: gross_sales_amount
+        description: unit_price * order_quantity, before discount.
+      - name: discount_amount
+        description: gross_sales_amount - net_sales_amount.
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: net_sales_amount
+        description: Revenue after line discounts (source line_total).
+      - name: cost_amount
+        description: unit_cost * order_quantity.
+      - name: gross_margin_amount
+        description: net_sales_amount - cost_amount.
+      - name: is_cost_estimated
+        description: True when unit_cost fell back to the current standard cost.
+
+  - name: fct_sales_orders
+    description: One row per sales order, with header amounts and rolled-up line measures.
+    columns:
+      - name: sales_order_id
+        data_tests: [unique, not_null]
+      - name: sales_order_number
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: days_to_ship
+        data_tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: currency_code
+        description: Currency the customer was billed in; USD when the order has no exchange rate.
+        data_tests: [not_null]
+      - name: sales_reasons
+        description: Comma-separated purchase reasons cited by the customer.
+      - name: total_due_local_currency
+        description: total_due converted at the order's average exchange rate.
+
+  - name: fct_sales_quota_attainment
+    description: >
+      One row per salesperson per quota period. A period runs from quota_date up to
+      the salesperson's next quota_date (the last period is assumed to be 3 months).
+      Sales are order subtotals credited to the salesperson on the order.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [sales_person_id, period_start_date]
+    columns:
+      - name: sales_person_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_salespeople')
+                field: sales_person_id
+      - name: quota_attainment_pct
+        description: sales_amount / sales_quota (1.0 = exactly on quota).
+
+unit_tests:
+  - name: test_quota_periods_end_at_next_quota_date
+    description: >
+      Orders count toward the period whose window contains them; the next quota
+      date is exclusive, and the final period runs three months.
+    model: fct_sales_quota_attainment
+    given:
+      - input: ref('stg_adventureworks__sales_person_quota_histories')
+        rows:
+          - {sales_person_id: 1, quota_date: 2024-01-01, sales_quota: 100}
+          - {sales_person_id: 1, quota_date: 2024-04-01, sales_quota: 200}
+      - input: ref('stg_adventureworks__sales_order_headers')
+        rows:
+          - {sales_order_id: 10, sales_person_id: 1, order_date: 2024-03-31, subtotal: 60}
+          - {sales_order_id: 11, sales_person_id: 1, order_date: 2024-04-01, subtotal: 150}
+          - {sales_order_id: 12, sales_person_id: 1, order_date: 2024-06-30, subtotal: 75}
+          - {sales_order_id: 13, sales_person_id: 1, order_date: 2024-07-01, subtotal: 999}
+          - {sales_order_id: 14, sales_person_id: 2, order_date: 2024-02-01, subtotal: 999}
+    expect:
+      rows:
+        - {sales_person_id: 1, period_start_date: 2024-01-01, period_end_date: 2024-04-01, order_count: 1, sales_amount: 60, is_quota_met: false}
+        - {sales_person_id: 1, period_start_date: 2024-04-01, period_end_date: 2024-07-01, order_count: 2, sales_amount: 225, is_quota_met: true}

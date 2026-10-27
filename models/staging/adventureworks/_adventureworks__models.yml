@@ -1,0 +1,194 @@
+version: 2
+
+# Staging: one model per raw table. Rename to consistent snake_case, cast types,
+# decode single-letter codes. No joins or business logic.
+
+models:
+  - name: stg_adventureworks__sales_order_headers
+    description: Sales orders, one row per order. Amounts are in USD.
+    columns:
+      - name: sales_order_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_adventureworks__customers')
+                field: customer_id
+      - name: status
+        description: Order lifecycle status decoded from status_code.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['In Process', 'Approved', 'Backordered', 'Rejected', 'Shipped', 'Cancelled']
+      - name: is_online_order
+        description: True for orders placed online by individuals; false for orders taken by a salesperson.
+      - name: subtotal
+        description: Sum of line totals, before tax and freight.
+      - name: total_due
+        description: subtotal + tax_amount + freight.
+
+  - name: stg_adventureworks__sales_order_details
+    description: Sales order lines, one row per product per order.
+    columns:
+      - name: sales_order_detail_id
+        data_tests: [unique, not_null]
+      - name: sales_order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_adventureworks__sales_order_headers')
+                field: sales_order_id
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_adventureworks__products')
+                field: product_id
+      - name: unit_price_discount_pct
+        description: Discount as a fraction of unit_price (0.10 = 10% off).
+      - name: line_total
+        description: unit_price * (1 - unit_price_discount_pct) * order_quantity.
+
+  - name: stg_adventureworks__sales_order_header_sales_reasons
+    description: Bridge of orders to the purchase reasons the customer gave.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [sales_order_id, sales_reason_id]
+
+  - name: stg_adventureworks__sales_reasons
+    description: Lookup of purchase reasons.
+    columns:
+      - name: sales_reason_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__sales_territories
+    description: Sales territories.
+    columns:
+      - name: territory_id
+        data_tests: [unique, not_null]
+      - name: territory_group
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['North America', 'Europe', 'Pacific']
+
+  - name: stg_adventureworks__sales_persons
+    description: Employees with a sales quota.
+    columns:
+      - name: sales_person_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__sales_person_quota_histories
+    description: Sales quota set for each salesperson, effective from quota_date.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [sales_person_id, quota_date]
+
+  - name: stg_adventureworks__customers
+    description: Customers - individuals (person_id only) or reseller stores (store_id set).
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__stores
+    description: Reseller stores.
+    columns:
+      - name: store_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__special_offers
+    description: Promotions and volume discounts.
+    columns:
+      - name: special_offer_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__currency_rates
+    description: Daily USD exchange rates.
+    columns:
+      - name: currency_rate_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__currencies
+    description: ISO currency codes.
+    columns:
+      - name: currency_code
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__ship_methods
+    description: Shipping carriers.
+    columns:
+      - name: ship_method_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__products
+    description: Products, including components that are never sold directly.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+      - name: product_line
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Road', 'Mountain', 'Touring', 'Standard']
+
+  - name: stg_adventureworks__product_subcategories
+    description: Product subcategories.
+    columns:
+      - name: product_subcategory_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__product_categories
+    description: Product categories.
+    columns:
+      - name: product_category_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__product_models
+    description: Product models.
+    columns:
+      - name: product_model_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__product_cost_histories
+    description: Standard cost per product, valid from valid_from through valid_to (inclusive).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [product_id, valid_from]
+
+  - name: stg_adventureworks__persons
+    description: People of every kind - customers, employees, store and vendor contacts.
+    columns:
+      - name: person_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__addresses
+    description: Street addresses.
+    columns:
+      - name: address_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__state_provinces
+    description: States and provinces.
+    columns:
+      - name: state_province_id
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__country_regions
+    description: Countries.
+    columns:
+      - name: country_region_code
+        data_tests: [unique, not_null]
+
+  - name: stg_adventureworks__employees
+    description: Employees.
+    columns:
+      - name: employee_id
+        data_tests: [unique, not_null]

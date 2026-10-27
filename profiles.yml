@@ -1,0 +1,23 @@
+# Profiles live in the repo so `dbt build` works straight after cloning.
+# DuckDB is the default target and needs no setup. The Snowflake target reads
+# every connection detail from environment variables (see README).
+adventureworks:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: adventureworks.duckdb
+      threads: 4
+
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      # Key-pair auth; Snowflake is retiring single-factor password logins.
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TRANSFORMING') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'ADVENTUREWORKS') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'DBT') }}"
+      threads: 8

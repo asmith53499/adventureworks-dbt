@@ -1,0 +1,40 @@
+name: adventureworks
+version: "1.0.0"
+config-version: 2
+
+profile: adventureworks
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+seeds:
+  adventureworks:
+    +schema: raw
+
+models:
+  adventureworks:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+tests:
+  adventureworks:
+    +severity: error
+
+vars:
+  # dim_dates bounds; covers the full order history (May 2022 - Jun 2025)
+  calendar_start_date: "2022-01-01"
+  calendar_end_date: "2026-01-01"
